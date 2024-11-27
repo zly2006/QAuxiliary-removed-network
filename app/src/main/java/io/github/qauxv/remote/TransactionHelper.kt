@@ -42,9 +42,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.net.ssl.HttpsURLConnection
 
 object TransactionHelper {
-
-    private const val apiAddress = "https://api.qwq2333.top/qa"
-
     // in ms, 15min
     private const val COOLDOWN_TIME = 15 * 60 * 1000L
 
@@ -64,26 +61,7 @@ object TransactionHelper {
 
     @JvmStatic
     fun getUserStatus(uin: Long): Int {
-        return try {
-            val url = URL("$apiAddress/user/query")
-            val conn = url.openConnection() as HttpsURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Content-Type", "application/json; utf-8")
-            conn.setRequestProperty("Accept", "application/json")
-            val os = DataOutputStream(conn.outputStream)
-            os.writeBytes("{\"uin\":$uin}")
-            os.flush()
-            os.close()
-            val resp = JSONObject(convertInputStreamToString(conn.inputStream))
-            if (resp.getInt("code") == 200) {
-                resp.getInt("status")
-            } else {
-                UserStatusConst.notExist
-            }
-        } catch (e: Exception) {
-            Log.e(e)
-            UserStatusConst.notExist
-        }
+        return 0
     }
 
     /**
@@ -178,47 +156,6 @@ object TransactionHelper {
         // if not syncing, start a new sync
         if (!sIsSyncThreadRunning.compareAndSet(false, true)) {
             return
-        }
-        SyncUtils.async {
-            try {
-                for (r in items) {
-                    Log.d("sync card msg history: $r")
-                    val url = URL("$apiAddress/statistics/card/send")
-                    val conn = url.openConnection() as HttpsURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json; utf-8")
-                    conn.setRequestProperty("Accept", "application/json")
-                    val os = DataOutputStream(conn.outputStream)
-                    val request = JSONObject()
-                    request.put("uin", r.uin)
-                    request.put("msg", r.msg)
-                    os.writeBytes(request.toString())
-                    os.flush()
-                    os.close()
-                    val resp = JSONObject(
-                        convertInputStreamToString(
-                            if (conn.responseCode >= 400) {
-                                conn.errorStream
-                            } else {
-                                conn.inputStream
-                            }
-                        )
-                    )
-                    if (resp.getInt("code") == 200) {
-                        if (BuildConfig.DEBUG) {
-                            Log.d("syncCardMsgHistory/requestSyncCardMsgHistory: ${r.uuid} $resp")
-                        }
-                        deleteCardMsgRecord(r.uuid)
-                    } else {
-                        Log.e("syncCardMsgHistory/requestSyncCardMsgHistory: ${r.uuid} $resp")
-                        break
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(e)
-            } finally {
-                sIsSyncThreadRunning.set(false)
-            }
         }
     }
 

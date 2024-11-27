@@ -41,7 +41,7 @@ object LicenseStatus {
     @JvmStatic
     fun getEulaStatus(): Int {
         val cfg = ConfigManager.getDefaultConfig()
-        return cfg.getIntOrDefault(qn_eula_status, 0)
+        return CURRENT_EULA_VERSION
     }
 
     @JvmStatic
@@ -53,80 +53,26 @@ object LicenseStatus {
 
     @JvmStatic
     fun hasEulaUpdated(): Boolean {
-        val s = getEulaStatus()
-        return s != 0 && s != CURRENT_EULA_VERSION
+        return false
     }
 
     @JvmStatic
     fun hasUserAcceptEula(): Boolean {
-        return getEulaStatus() == CURRENT_EULA_VERSION
+        return true
     }
-
-    @JvmStatic
-    fun setUserCurrentStatus() {
-        SyncUtils.async {
-            val cfg = ConfigManager.getDefaultConfig()
-            val currentStatus = getUserStatus(AppRuntimeHelper.getLongAccountUin())
-            // 如果获取不到就放弃更新状态
-            if (currentStatus == UserStatusConst.notExist) {
-                return@async
-            }
-            Log.i("User Current Status: $currentStatus")
-            cfg.putInt(qn_user_auth_status, currentStatus)
-            cfg.putLong(qn_user_auth_last_update, System.currentTimeMillis())
-            cfg.save()
-            Log.i("User Current Status in ConfigManager: " + cfg.getIntOrDefault(qn_user_auth_status, -1))
-            Log.i("User Status Last Update: " + Date(cfg.getLongOrDefault(qn_user_auth_last_update, System.currentTimeMillis())))
-        }
-    }
-
 
     @JvmStatic
     fun isInsider(): Boolean {
-        val cfg = ConfigManager.getDefaultConfig()
-        var currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        if (currentStatus == UserStatusConst.notExist) {
-            setUserCurrentStatus()
-            currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        }
-        val lastUpdate = cfg.getLongOrDefault(qn_user_auth_last_update, System.currentTimeMillis())
-        if (lastUpdate >= lastUpdate + 30 * 60 * 1000) {
-            setUserCurrentStatus()
-        }
-        return currentStatus == UserStatusConst.developer
+        return true
     }
 
     @JvmStatic
     fun isBlacklisted(): Boolean {
-        val cfg = ConfigManager.getDefaultConfig()
-        var currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        if (currentStatus == UserStatusConst.notExist) {
-            setUserCurrentStatus()
-            currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        }
-        val lastUpdate = cfg.getLongOrDefault(qn_user_auth_last_update, System.currentTimeMillis())
-        if (lastUpdate >= lastUpdate + 30 * 60 * 1000) {
-            setUserCurrentStatus()
-        }
-        return currentStatus == UserStatusConst.blacklisted
+        return false
     }
 
     @JvmStatic
     fun isWhitelisted(): Boolean {
-        if (isInsider())
-            return true
-        val cfg = ConfigManager.getDefaultConfig()
-        var currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        if (currentStatus == UserStatusConst.notExist) {
-            setUserCurrentStatus()
-            currentStatus = cfg.getIntOrDefault(qn_user_auth_status, -1)
-        }
-        val lastUpdate = cfg.getLongOrDefault(qn_user_auth_last_update, System.currentTimeMillis())
-        if (lastUpdate >= lastUpdate + 30 * 60 * 1000) {
-            setUserCurrentStatus()
-        }
-        return currentStatus == UserStatusConst.whitelisted
+        return true
     }
-
-
 }
